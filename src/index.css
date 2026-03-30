@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 222 47% 11%;
+    --primary-foreground: 43 96% 58%;
+
+    --secondary: 220 16% 93%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 16% 93%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 43 96% 58%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 16% 90%;
+    --input: 220 16% 90%;
+    --ring: 43 96% 58%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 220 20% 85%;
+    --sidebar-primary: 43 96% 58%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 222 40% 18%;
+    --sidebar-accent-foreground: 220 20% 90%;
+    --sidebar-border: 222 40% 18%;
+    --sidebar-ring: 43 96% 58%;
+
+    --gold: 43 96% 58%;
+    --gold-light: 43 90% 70%;
+    --gold-dark: 43 96% 45%;
+    --navy: 222 47% 11%;
+    --navy-light: 222 35% 20%;
+    --navy-lighter: 222 25% 30%;
+
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+
+    --gradient-gold: linear-gradient(135deg, hsl(43 96% 58%), hsl(35 95% 50%));
+    --gradient-navy: linear-gradient(135deg, hsl(222 47% 11%), hsl(222 35% 20%));
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-elevated: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.04);
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 220 20% 90%;
+
+    --card: 222 40% 10%;
+    --card-foreground: 220 20% 90%;
+
+    --popover: 222 40% 10%;
+    --popover-foreground: 220 20% 90%;
+
+    --primary: 43 96% 58%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 222 40% 15%;
+    --secondary-foreground: 220 20% 90%;
+
+    --muted: 222 40% 15%;
+    --muted-foreground: 220 15% 55%;
+
+    --accent: 43 96% 58%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 43 96% 58%;
+
+    --sidebar-background: 222 50% 6%;
+    --sidebar-foreground: 220 20% 80%;
+    --sidebar-primary: 43 96% 58%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 222 40% 12%;
+    --sidebar-accent-foreground: 220 20% 85%;
+    --sidebar-border: 222 40% 12%;
+    --sidebar-ring: 43 96% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .text-gold-gradient {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gold-gradient {
+    background: var(--gradient-gold);
+  }
+
+  .bg-navy-gradient {
+    background: var(--gradient-navy);
+  }
+}
