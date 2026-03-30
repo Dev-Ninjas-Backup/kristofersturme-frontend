@@ -82,9 +82,6 @@ const Login = () => {
             Don't have an account?{' '}
             <Link to="/register" className="text-gold hover:text-gold-dark font-medium">Register</Link>
           </p>
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            Tip: Use "admin@example.com" to access admin panel
-          </p>
         </div>
       </div>
     </div>
