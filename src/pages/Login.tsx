@@ -82,6 +82,14 @@ const Login = () => {
             Don't have an account?{' '}
             <Link to="/register" className="text-gold hover:text-gold-dark font-medium">Register</Link>
           </p>
+
+          <div className="mt-6 p-4 rounded-lg border border-border bg-muted/40 text-sm space-y-2">
+            <p className="font-semibold text-foreground">Demo Credentials</p>
+            <div className="space-y-1 text-muted-foreground">
+              <p><span className="font-medium text-foreground">Admin:</span> admin@membersclub.com / admin123</p>
+              <p><span className="font-medium text-foreground">Member:</span> member@membersclub.com / member123</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

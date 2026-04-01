@@ -42,7 +42,7 @@ const Sidebar = () => {
     navigate('/login');
   };
 
-  const links = memberLinks;
+  const links = isAdmin ? adminLinks : memberLinks;
 
   return (
     <aside className={cn(
@@ -68,22 +68,12 @@ const Sidebar = () => {
           </NavLink>
         ))}
 
-        {isAdmin && (
-          <>
-            <div className={cn("pt-4 pb-2", collapsed ? "px-2" : "px-3")}>
-              {!collapsed && <p className="text-xs uppercase tracking-wider text-sidebar-foreground/50 flex items-center gap-2"><ShieldCheck className="w-3 h-3" /> Admin</p>}
-              {collapsed && <div className="h-px bg-sidebar-border" />}
-            </div>
-            {adminLinks.map(link => (
-              <NavLink key={link.to} to={link.to} className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                isActive ? "bg-sidebar-accent text-sidebar-primary" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}>
-                <link.icon className="w-5 h-5 shrink-0" />
-                {!collapsed && <span>{link.label}</span>}
-              </NavLink>
-            ))}
-          </>
+        {isAdmin && !collapsed && (
+          <div className="pt-4 pb-1 px-3">
+            <p className="text-xs uppercase tracking-wider text-sidebar-foreground/50 flex items-center gap-2">
+              <ShieldCheck className="w-3 h-3" /> Admin Panel
+            </p>
+          </div>
         )}
       </nav>
 

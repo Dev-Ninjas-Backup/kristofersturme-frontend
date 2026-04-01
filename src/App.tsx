@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, Outlet } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useAuthStore } from "@/store/authStore";
 
 import PortalLayout from "@/components/layout/PortalLayout";
 import Home from "@/pages/Home";
@@ -29,6 +30,13 @@ import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Redirects non-admin users away from admin routes
+const AdminRoute = () => {
+  const user = useAuthStore(s => s.user);
+  if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -40,6 +48,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
+          {/* User panel */}
           <Route element={<PortalLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/members" element={<Members />} />
@@ -52,13 +61,16 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/notifications" element={<Notifications />} />
 
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/members" element={<AdminMembers />} />
-            <Route path="/admin/bookings/granada" element={<AdminGranadaBookings />} />
-            <Route path="/admin/bookings/barcelona" element={<AdminBarcelonaBookings />} />
-            <Route path="/admin/matches" element={<AdminMatches />} />
-            <Route path="/admin/rooms" element={<AdminRooms />} />
-            <Route path="/admin/rules" element={<AdminRules />} />
+            {/* Admin panel — admin only */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/members" element={<AdminMembers />} />
+              <Route path="/admin/bookings/granada" element={<AdminGranadaBookings />} />
+              <Route path="/admin/bookings/barcelona" element={<AdminBarcelonaBookings />} />
+              <Route path="/admin/matches" element={<AdminMatches />} />
+              <Route path="/admin/rooms" element={<AdminRooms />} />
+              <Route path="/admin/rules" element={<AdminRules />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<NotFound />} />

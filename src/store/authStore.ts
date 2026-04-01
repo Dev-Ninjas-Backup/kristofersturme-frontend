@@ -10,14 +10,19 @@ interface AuthState {
   register: (data: { email: string; password: string; first_name: string; last_name: string }) => boolean;
 }
 
+const CREDENTIALS = [
+  { email: 'admin@membersclub.com', password: 'admin123', role: 'admin' as const },
+  { email: 'member@membersclub.com', password: 'member123', role: 'member' as const },
+];
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
-  login: (email: string, _password: string) => {
-    if (email) {
-      const isAdmin = email.includes('admin');
+  login: (email: string, password: string) => {
+    const match = CREDENTIALS.find(c => c.email === email && c.password === password);
+    if (match) {
       set({
-        user: { ...currentUser, email, role: isAdmin ? 'admin' : 'member' },
+        user: { ...currentUser, email: match.email, role: match.role },
         isAuthenticated: true,
       });
       return true;

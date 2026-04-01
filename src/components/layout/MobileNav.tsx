@@ -1,9 +1,10 @@
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import {
   Crown, LayoutDashboard, Users, Building2, Trophy, CalendarDays,
-  User, Bell, LogOut, X,
+  User, Bell, LogOut, X, Settings, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,12 +13,22 @@ interface MobileNavProps {
   onClose: () => void;
 }
 
+interface NavItem {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  badge?: number;
+}
+
 const MobileNav = ({ open, onClose }: MobileNavProps) => {
+  const user = useAuthStore(s => s.user);
   const logout = useAuthStore(s => s.logout);
   const unreadCount = useNotificationStore(s => s.unreadCount);
   const navigate = useNavigate();
 
-  const links = [
+  const isAdmin = user?.role === 'admin';
+
+  const memberLinks: NavItem[] = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/members', icon: Users, label: 'Members' },
     { to: '/bookings/granada', icon: Building2, label: 'Granada' },
@@ -26,6 +37,18 @@ const MobileNav = ({ open, onClose }: MobileNavProps) => {
     { to: '/profile', icon: User, label: 'Profile' },
     { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
   ];
+
+  const adminLinks: NavItem[] = [
+    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/admin/members', icon: Users, label: 'Members' },
+    { to: '/admin/bookings/granada', icon: Building2, label: 'Granada Bookings' },
+    { to: '/admin/bookings/barcelona', icon: Trophy, label: 'Barcelona Bookings' },
+    { to: '/admin/matches', icon: Trophy, label: 'Matches' },
+    { to: '/admin/rooms', icon: Building2, label: 'Rooms' },
+    { to: '/admin/rules', icon: Settings, label: 'Rules' },
+  ];
+
+  const links = isAdmin ? adminLinks : memberLinks;
 
   if (!open) return null;
 
@@ -36,7 +59,14 @@ const MobileNav = ({ open, onClose }: MobileNavProps) => {
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <Crown className="w-7 h-7 text-sidebar-primary" />
-            <span className="font-display text-lg text-sidebar-primary">Members Club</span>
+            <div>
+              <span className="font-display text-lg text-sidebar-primary">Members Club</span>
+              {isAdmin && (
+                <p className="text-xs text-sidebar-foreground/50 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> Admin Panel
+                </p>
+              )}
+            </div>
           </div>
           <button onClick={onClose} className="text-sidebar-foreground"><X className="w-5 h-5" /></button>
         </div>
