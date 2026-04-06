@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { mockMembers, allSkills } from '@/data/mockData';
+import { allSkills } from '@/data/mockData';
+import { useMembers } from '@/hooks/useDb';
 import PageHeader from '@/components/shared/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Search, MapPin, Grid3X3, Map } from 'lucide-react';
@@ -8,7 +9,8 @@ import { Search, MapPin, Grid3X3, Map } from 'lucide-react';
 const MembersMap = lazy(() => import('@/components/MembersMap'));
 import { cn } from '@/lib/utils';
 
-const MemberCard = ({ member }: { member: typeof mockMembers[0] }) => (
+import type { MemberProfile } from '@/types';
+const MemberCard = ({ member }: { member: MemberProfile }) => (
   <Link to={`/members/${member.id}`} className="bg-card rounded-xl border border-border p-6 hover:shadow-elevated transition-all group">
     <div className="flex items-center gap-4 mb-4">
       <div className="w-14 h-14 rounded-full bg-navy flex items-center justify-center text-gold font-display text-xl font-bold shrink-0">
@@ -23,7 +25,7 @@ const MemberCard = ({ member }: { member: typeof mockMembers[0] }) => (
     </div>
     {member.bio && <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{member.bio}</p>}
     <div className="flex flex-wrap gap-1.5">
-      {member.skills.map(skill => (
+      {(member.skills ?? []).map(skill => (
         <span key={skill.id} className="text-xs bg-gold/10 text-gold-dark px-2 py-0.5 rounded-full border border-gold/20">{skill.name}</span>
       ))}
     </div>
@@ -31,20 +33,21 @@ const MemberCard = ({ member }: { member: typeof mockMembers[0] }) => (
 );
 
 const Members = () => {
+  const { data: members } = useMembers();
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'grid' | 'map'>('grid');
   const [skillFilter, setSkillFilter] = useState('');
 
-  const filtered = mockMembers.filter(m => {
+  const filtered = members.filter(m => {
     const q = search.toLowerCase();
-    const matchesSearch = !q || m.first_name.toLowerCase().includes(q) || m.last_name.toLowerCase().includes(q) || m.bio?.toLowerCase().includes(q) || m.skills.some(s => s.name.toLowerCase().includes(q));
-    const matchesSkill = !skillFilter || m.skills.some(s => s.slug === skillFilter);
+    const matchesSearch = !q || m.first_name.toLowerCase().includes(q) || m.last_name.toLowerCase().includes(q) || m.bio?.toLowerCase().includes(q) || (m.skills ?? []).some(s => s.name.toLowerCase().includes(q));
+    const matchesSkill = !skillFilter || (m.skills ?? []).some(s => s.slug === skillFilter);
     return matchesSearch && matchesSkill;
   });
 
   return (
     <div className="animate-fade-in">
-      <PageHeader title="Members Directory" description={`${mockMembers.length} members in the club`}>
+      <PageHeader title="Members Directory" description={`${members.length} members in the club`}>
         <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
           <button onClick={() => setView('grid')} className={cn("p-2 rounded-md transition-colors", view === 'grid' ? "bg-card shadow-sm text-foreground" : "text-muted-foreground")}>
             <Grid3X3 className="w-4 h-4" />

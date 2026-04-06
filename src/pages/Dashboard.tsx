@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
-import { mockMembers, mockGranadaBookings, mockBarcelonaBookings } from '@/data/mockData';
+import { useMembers, useGranadaBookings, useBarcelonaBookings } from '@/hooks/useDb';
 import PageHeader from '@/components/shared/PageHeader';
 import { Users, Building2, Trophy, Bell, ArrowRight } from 'lucide-react';
 
@@ -21,16 +21,19 @@ const DashboardCard = ({ icon: Icon, label, value, to, color }: { icon: any; lab
 const Dashboard = () => {
   const user = useAuthStore(s => s.user);
   const unreadCount = useNotificationStore(s => s.unreadCount);
+  const { data: members } = useMembers();
+  const { data: granadaBookings } = useGranadaBookings();
+  const { data: barcelonaBookings } = useBarcelonaBookings();
 
-  const granadaCount = mockGranadaBookings.filter(b => b.member.user_id === 'u1' && b.status !== 'cancelled').length;
-  const barcelonaCount = mockBarcelonaBookings.filter(b => b.member.user_id === 'u1' && b.status !== 'cancelled').length;
+  const granadaCount = granadaBookings.filter(b => b.member.user_id === user?.id && b.status !== 'cancelled').length;
+  const barcelonaCount = barcelonaBookings.filter(b => b.member.user_id === user?.id && b.status !== 'cancelled').length;
 
   return (
     <div className="animate-fade-in">
       <PageHeader title={`Welcome back`} description="Here's an overview of your club activity" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <DashboardCard icon={Users} label="Total Members" value={mockMembers.length} to="/members" color="bg-navy text-gold" />
+        <DashboardCard icon={Users} label="Total Members" value={members.length} to="/members" color="bg-navy text-gold" />
         <DashboardCard icon={Building2} label="Granada Bookings" value={granadaCount} to="/bookings/granada" color="bg-emerald-100 text-emerald-700" />
         <DashboardCard icon={Trophy} label="Barcelona Bookings" value={barcelonaCount} to="/bookings/barcelona" color="bg-blue-100 text-blue-700" />
         <DashboardCard icon={Bell} label="Unread Notifications" value={unreadCount} to="/notifications" color="bg-amber-100 text-amber-700" />
@@ -58,7 +61,7 @@ const Dashboard = () => {
         <div className="bg-card rounded-xl border border-border p-6">
           <h3 className="font-display text-lg text-foreground mb-4">Recent Bookings</h3>
           <div className="space-y-3">
-            {mockGranadaBookings.slice(0, 2).map(b => (
+            {granadaBookings.slice(0, 2).map(b => (
               <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                 <div>
                   <p className="text-sm font-medium text-foreground">{b.room.name}</p>
@@ -69,7 +72,7 @@ const Dashboard = () => {
                 </span>
               </div>
             ))}
-            {mockBarcelonaBookings.slice(0, 1).map(b => (
+            {barcelonaBookings.slice(0, 1).map(b => (
               <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                 <div>
                   <p className="text-sm font-medium text-foreground">vs {b.match.opponent}</p>

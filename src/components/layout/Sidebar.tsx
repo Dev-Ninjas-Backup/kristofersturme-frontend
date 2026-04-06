@@ -37,8 +37,8 @@ const Sidebar = () => {
     { to: '/admin/rules', icon: Settings, label: 'Rules' },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 

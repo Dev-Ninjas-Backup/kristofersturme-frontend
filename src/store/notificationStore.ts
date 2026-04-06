@@ -1,30 +1,44 @@
 import { create } from 'zustand';
-import { mockNotifications } from '@/data/mockData';
+import {
+  onNotifications, markNotificationRead,
+  markAllNotificationsRead, deleteNotificationItem,
+} from '@/lib/db';
 import type { Notification } from '@/types';
 
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
+  uid: string | null;
+  init: (uid: string) => () => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   deleteNotification: (id: string) => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
-  notifications: mockNotifications,
-  unreadCount: mockNotifications.filter(n => !n.is_read).length,
+  notifications: [],
+  unreadCount: 0,
+  uid: null,
+
+  init: (uid: string) => {
+    set({ uid });
+    return onNotifications(uid, (notifs) => {
+      set({ notifications: notifs, unreadCount: notifs.filter(n => !n.is_read).length });
+    });
+  },
+
   markAsRead: (id: string) => {
-    const notifications = get().notifications.map(n =>
-      n.id === id ? { ...n, is_read: true } : n
-    );
-    set({ notifications, unreadCount: notifications.filter(n => !n.is_read).length });
+    const { uid } = get();
+    if (uid) markNotificationRead(uid, id);
   },
+
   markAllAsRead: () => {
-    const notifications = get().notifications.map(n => ({ ...n, is_read: true }));
-    set({ notifications, unreadCount: 0 });
+    const { uid } = get();
+    if (uid) markAllNotificationsRead(uid);
   },
+
   deleteNotification: (id: string) => {
-    const notifications = get().notifications.filter(n => n.id !== id);
-    set({ notifications, unreadCount: notifications.filter(n => !n.is_read).length });
+    const { uid } = get();
+    if (uid) deleteNotificationItem(uid, id);
   },
 }));

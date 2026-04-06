@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { mockMembers } from '@/data/mockData';
+import { useState, useEffect } from 'react';
+import { useMembers } from '@/hooks/useDb';
+import { updateMember } from '@/lib/db';
+import { useAuthStore } from '@/store/authStore';
 import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,20 +12,39 @@ import { toast } from 'sonner';
 import { X } from 'lucide-react';
 
 const Profile = () => {
-  const member = mockMembers[0];
-  const [firstName, setFirstName] = useState(member.first_name);
-  const [lastName, setLastName] = useState(member.last_name);
-  const [bio, setBio] = useState(member.bio || '');
-  const [phone, setPhone] = useState(member.phone || '');
-  const [website, setWebsite] = useState(member.website_url || '');
-  const [linkedin, setLinkedin] = useState(member.linkedin_url || '');
-  const [instagram, setInstagram] = useState(member.instagram_url || '');
-  const [twitter, setTwitter] = useState(member.twitter_url || '');
-  const [city, setCity] = useState(member.location?.city || '');
-  const [country, setCountry] = useState(member.location?.country || '');
-  const [isVisible, setIsVisible] = useState(member.is_visible);
-  const [skills, setSkills] = useState(member.skills.map(s => s.name));
+  const user = useAuthStore(s => s.user);
+  const { data: members } = useMembers();
+  const member = members.find(m => m.user_id === user?.id);
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [bio, setBio] = useState('');
+  const [phone, setPhone] = useState('');
+  const [website, setWebsite] = useState('');
+  const [linkedin, setLinkedin] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [twitter, setTwitter] = useState('');
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('');
+  const [isVisible, setIsVisible] = useState(true);
+  const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
+
+  useEffect(() => {
+    if (!member) return;
+    setFirstName(member.first_name);
+    setLastName(member.last_name);
+    setBio(member.bio || '');
+    setPhone(member.phone || '');
+    setWebsite(member.website_url || '');
+    setLinkedin(member.linkedin_url || '');
+    setInstagram(member.instagram_url || '');
+    setTwitter(member.twitter_url || '');
+    setCity(member.location?.city || '');
+    setCountry(member.location?.country || '');
+    setIsVisible(member.is_visible);
+    setSkills((member.skills ?? []).map(s => s.name));
+  }, [member?.id]);
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -32,10 +53,28 @@ const Profile = () => {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Profile updated successfully');
+    if (!member) return;
+    try {
+      await updateMember(member.id, {
+        first_name: firstName,
+        last_name: lastName,
+        bio: bio || null,
+        phone: phone || null,
+        website_url: website || null,
+        linkedin_url: linkedin || null,
+        instagram_url: instagram || null,
+        twitter_url: twitter || null,
+        is_visible: isVisible,
+        location: member.location ? { ...member.location, city, country } : null,
+        skills: skills.map((name, i) => ({ id: `s${i}`, name, slug: name.toLowerCase().replace(/\s+/g, '-') })),
+      });
+      toast.success('Profile updated successfully');
+    } catch { toast.error('Failed to save profile'); }
   };
+
+  if (!member) return <div className="animate-fade-in"><p className="text-muted-foreground p-8">Loading profile...</p></div>;
 
   return (
     <div className="animate-fade-in max-w-2xl">

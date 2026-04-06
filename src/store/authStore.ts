@@ -1,38 +1,63 @@
 import { create } from 'zustand';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { getUserData, setUserData, seedIfEmpty } from '@/lib/db';
 import type { User } from '@/types';
-import { currentUser } from '@/data/mockData';
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
-  register: (data: { email: string; password: string; first_name: string; last_name: string }) => boolean;
+  authLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (data: { email: string; password: string; first_name: string; last_name: string }) => Promise<void>;
+  _setAuth: (user: User | null, loading: boolean) => void;
 }
-
-const CREDENTIALS = [
-  { email: 'admin@membersclub.com', password: 'admin123', role: 'admin' as const },
-  { email: 'member@membersclub.com', password: 'member123', role: 'member' as const },
-];
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
-  login: (email: string, password: string) => {
-    const match = CREDENTIALS.find(c => c.email === email && c.password === password);
-    if (match) {
-      set({
-        user: { ...currentUser, email: match.email, role: match.role },
-        isAuthenticated: true,
-      });
-      return true;
+  authLoading: true,
+
+  _setAuth: (user, loading) =>
+    set({ user, isAuthenticated: !!user, authLoading: loading }),
+
+  login: async (email, password) => {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    let userData = await getUserData(cred.user.uid);
+
+    if (!userData) {
+      const role = email.toLowerCase().includes('admin') ? 'admin' : 'member';
+      userData = { email: cred.user.email!, role, is_active: true };
+      await setUserData(cred.user.uid, userData);
     }
-    return false;
+
+    if (userData.role === 'admin') await seedIfEmpty();
+
+    set({
+      user: { id: cred.user.uid, email: cred.user.email!, role: userData.role, is_active: userData.is_active },
+      isAuthenticated: true,
+      authLoading: false,
+    });
   },
-  logout: () => {
-    set({ user: null, isAuthenticated: false });
+
+  logout: async () => {
+    await signOut(auth);
+    set({ user: null, isAuthenticated: false, authLoading: false });
   },
-  register: () => {
-    return true;
+
+  register: async ({ email, password }) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const userData = { email: cred.user.email!, role: 'member' as const, is_active: true };
+    await setUserData(cred.user.uid, userData);
+    set({
+      user: { id: cred.user.uid, email: cred.user.email!, role: 'member', is_active: true },
+      isAuthenticated: true,
+      authLoading: false,
+    });
   },
 }));

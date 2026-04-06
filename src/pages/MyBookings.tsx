@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { mockGranadaBookings, mockBarcelonaBookings } from '@/data/mockData';
+import { useGranadaBookings, useBarcelonaBookings } from '@/hooks/useDb';
+import { updateGranadaBookingStatus, updateBarcelonaBookingStatus } from '@/lib/db';
+import { useAuthStore } from '@/store/authStore';
 import PageHeader from '@/components/shared/PageHeader';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { cn } from '@/lib/utils';
@@ -8,10 +10,20 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const MyBookings = () => {
+  const user = useAuthStore(s => s.user);
+  const { data: granadaBookings } = useGranadaBookings();
+  const { data: barcelonaBookings } = useBarcelonaBookings();
   const [tab, setTab] = useState<'granada' | 'barcelona'>('granada');
 
-  const handleCancel = (type: string) => {
-    toast.success(`${type} booking cancelled successfully`);
+  const myGranada = granadaBookings.filter(b => b.member.user_id === user?.id);
+  const myBarcelona = barcelonaBookings.filter(b => b.member.user_id === user?.id);
+
+  const handleCancel = async (id: string, type: 'granada' | 'barcelona') => {
+    try {
+      if (type === 'granada') await updateGranadaBookingStatus(id, 'cancelled');
+      else await updateBarcelonaBookingStatus(id, 'cancelled');
+      toast.success('Booking cancelled');
+    } catch { toast.error('Failed to cancel booking'); }
   };
 
   return (
@@ -31,7 +43,7 @@ const MyBookings = () => {
 
       {tab === 'granada' && (
         <div className="space-y-3">
-          {mockGranadaBookings.map(b => (
+          {myGranada.map(b => (
             <div key={b.id} className="bg-card rounded-xl border border-border p-5 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
                 <h3 className="font-semibold text-foreground">{b.room.name}</h3>
@@ -43,7 +55,7 @@ const MyBookings = () => {
               <div className="flex items-center gap-3">
                 <StatusBadge status={b.status} />
                 {(b.status === 'pending' || b.status === 'confirmed') && (
-                  <Button variant="outline" size="sm" onClick={() => handleCancel('Granada')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Button variant="outline" size="sm" onClick={() => handleCancel(b.id, 'granada')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
                     Cancel
                   </Button>
                 )}
@@ -55,7 +67,7 @@ const MyBookings = () => {
 
       {tab === 'barcelona' && (
         <div className="space-y-3">
-          {mockBarcelonaBookings.map(b => (
+          {myBarcelona.map(b => (
             <div key={b.id} className="bg-card rounded-xl border border-border p-5 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
                 <h3 className="font-semibold text-foreground">vs {b.match.opponent}</h3>
@@ -67,7 +79,7 @@ const MyBookings = () => {
               <div className="flex items-center gap-3">
                 <StatusBadge status={b.status} />
                 {(b.status === 'pending' || b.status === 'confirmed') && (
-                  <Button variant="outline" size="sm" onClick={() => handleCancel('Barcelona')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Button variant="outline" size="sm" onClick={() => handleCancel(b.id, 'barcelona')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
                     Cancel
                   </Button>
                 )}

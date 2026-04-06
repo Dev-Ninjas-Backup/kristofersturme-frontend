@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
-import { mockRooms } from '@/data/mockData';
+import { useRooms } from '@/hooks/useDb';
 import PageHeader from '@/components/shared/PageHeader';
 import { Users, ArrowRight } from 'lucide-react';
 
 const GranadaBookings = () => {
-  const availableRooms = mockRooms.filter(r => !r.is_owners && r.is_active);
+  const { data: rooms } = useRooms();
+  const availableRooms = rooms.filter(r => !r.is_owners && r.is_active);
 
   return (
     <div className="animate-fade-in">

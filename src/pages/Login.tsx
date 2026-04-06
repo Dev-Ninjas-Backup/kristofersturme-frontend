@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,14 +26,21 @@ const Login = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginForm) => {
-    const success = login(data.email, data.password);
-    if (success) {
+  const onSubmit = async (data: LoginForm) => {
+    try {
+      await login(data.email, data.password);
       toast.success('Welcome back!');
-      const isAdmin = data.email.includes('admin');
-      navigate(isAdmin ? '/admin/dashboard' : '/dashboard');
-    } else {
-      toast.error('Invalid credentials');
+      const user = useAuthStore.getState().user;
+      navigate(user?.role === 'admin' ? '/admin/dashboard' : '/dashboard');
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? '';
+      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+        toast.error('Invalid email or password');
+      } else if (code === 'auth/too-many-requests') {
+        toast.error('Too many attempts. Please try again later.');
+      } else {
+        toast.error('Sign in failed. Please try again.');
+      }
     }
   };
 
@@ -78,18 +85,6 @@ const Login = () => {
             </Button>
           </form>
 
-          <p className="text-center text-muted-foreground mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-gold hover:text-gold-dark font-medium">Register</Link>
-          </p>
-
-          <div className="mt-6 p-4 rounded-lg border border-border bg-muted/40 text-sm space-y-2">
-            <p className="font-semibold text-foreground">Demo Credentials</p>
-            <div className="space-y-1 text-muted-foreground">
-              <p><span className="font-medium text-foreground">Admin:</span> admin@membersclub.com / admin123</p>
-              <p><span className="font-medium text-foreground">Member:</span> member@membersclub.com / member123</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

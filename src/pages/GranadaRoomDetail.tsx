@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
-import { mockRooms } from '@/data/mockData';
+import { useRooms } from '@/hooks/useDb';
+import { createGranadaBooking } from '@/lib/db';
+import { useAuthStore } from '@/store/authStore';
 import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +13,9 @@ import { toast } from 'sonner';
 
 const GranadaRoomDetail = () => {
   const { roomId } = useParams();
-  const room = mockRooms.find(r => r.id === roomId);
+  const { data: rooms } = useRooms();
+  const user = useAuthStore(s => s.user);
+  const room = rooms.find(r => r.id === roomId);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [notes, setNotes] = useState('');
@@ -23,20 +27,24 @@ const GranadaRoomDetail = () => {
     </div>
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!checkIn || !checkOut) {
-      toast.error('Please select check-in and check-out dates');
-      return;
-    }
-    if (new Date(checkOut) <= new Date(checkIn)) {
-      toast.error('Check-out must be after check-in');
-      return;
-    }
-    toast.success('Booking request submitted! You will be notified once confirmed.');
-    setCheckIn('');
-    setCheckOut('');
-    setNotes('');
+    if (!checkIn || !checkOut) { toast.error('Please select check-in and check-out dates'); return; }
+    if (new Date(checkOut) <= new Date(checkIn)) { toast.error('Check-out must be after check-in'); return; }
+    if (!room || !user) return;
+    try {
+      await createGranadaBooking({
+        member: { id: user.id, user_id: user.id, first_name: user.email.split('@')[0], last_name: '', avatar_url: null, bio: null, phone: null, website_url: null, linkedin_url: null, instagram_url: null, twitter_url: null, is_visible: true, location: null, skills: [] },
+        room,
+        check_in: checkIn,
+        check_out: checkOut,
+        status: 'pending',
+        notes: notes || null,
+        created_at: new Date().toISOString(),
+      });
+      toast.success('Booking request submitted! You will be notified once confirmed.');
+      setCheckIn(''); setCheckOut(''); setNotes('');
+    } catch { toast.error('Failed to submit booking'); }
   };
 
   return (

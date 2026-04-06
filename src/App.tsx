@@ -1,14 +1,17 @@
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, Outlet } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { getUserData, seedIfEmpty, seedSuperAdmin } from '@/lib/db';
 import { useAuthStore } from "@/store/authStore";
+import { useNotificationStore } from '@/store/notificationStore';
 
 import PortalLayout from "@/components/layout/PortalLayout";
-import Home from "@/pages/Home";
 import Login from "@/pages/Login";
-import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
 import Members from "@/pages/Members";
 import MemberProfile from "@/pages/MemberProfile";
@@ -30,11 +33,48 @@ import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Redirects non-admin users away from admin routes
 const AdminRoute = () => {
   const user = useAuthStore(s => s.user);
   if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return <Outlet />;
+};
+
+const AppInit = () => {
+  const { _setAuth } = useAuthStore();
+  const initNotifications = useNotificationStore(s => s.init);
+
+  useEffect(() => {
+    // Seed superadmin on every cold start (idempotent — skips if already done)
+    seedSuperAdmin();
+
+    let unsubNotif: (() => void) | null = null;
+
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userData = await getUserData(firebaseUser.uid);
+        const role = userData?.role ?? 'member';
+        const isActive = userData?.is_active ?? true;
+
+        if (role === 'admin') await seedIfEmpty();
+
+        _setAuth(
+          { id: firebaseUser.uid, email: firebaseUser.email!, role, is_active: isActive },
+          false
+        );
+
+        unsubNotif?.();
+        unsubNotif = initNotifications(firebaseUser.uid);
+      } else {
+        _setAuth(null, false);
+        unsubNotif?.();
+        unsubNotif = null;
+      }
+    });
+
+    return () => { unsubAuth(); unsubNotif?.(); };
+  }, []);
+
+  return null;
 };
 
 const App = () => (
@@ -43,10 +83,10 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <AppInit />
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
 
           {/* User panel */}
           <Route element={<PortalLayout />}>
@@ -61,7 +101,7 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/notifications" element={<Notifications />} />
 
-            {/* Admin panel — admin only */}
+            {/* Admin panel */}
             <Route element={<AdminRoute />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/members" element={<AdminMembers />} />

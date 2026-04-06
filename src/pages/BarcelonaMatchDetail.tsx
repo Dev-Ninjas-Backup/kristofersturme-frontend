@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
-import { mockMatches } from '@/data/mockData';
+import { useMatches } from '@/hooks/useDb';
+import { createBarcelonaBooking } from '@/lib/db';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +12,9 @@ import { cn } from '@/lib/utils';
 
 const BarcelonaMatchDetail = () => {
   const { matchId } = useParams();
-  const match = mockMatches.find(m => m.id === matchId);
+  const { data: matches } = useMatches();
+  const user = useAuthStore(s => s.user);
+  const match = matches.find(m => m.id === matchId);
   const [seats, setSeats] = useState(1);
   const [notes, setNotes] = useState('');
 
@@ -21,15 +25,22 @@ const BarcelonaMatchDetail = () => {
     </div>
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (match.seats_remaining === 0) {
-      toast.error('No seats available');
-      return;
-    }
-    toast.success(`Booking request for ${seats} seat(s) submitted!`);
-    setSeats(1);
-    setNotes('');
+    if (match.seats_remaining === 0) { toast.error('No seats available'); return; }
+    if (!user) return;
+    try {
+      await createBarcelonaBooking({
+        member: { id: user.id, user_id: user.id, first_name: user.email.split('@')[0], last_name: '', avatar_url: null, bio: null, phone: null, website_url: null, linkedin_url: null, instagram_url: null, twitter_url: null, is_visible: true, location: null, skills: [] },
+        match,
+        seats,
+        status: 'pending',
+        notes: notes || null,
+        created_at: new Date().toISOString(),
+      });
+      toast.success(`Booking request for ${seats} seat(s) submitted!`);
+      setSeats(1); setNotes('');
+    } catch { toast.error('Failed to submit booking'); }
   };
 
   return (

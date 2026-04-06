@@ -1,12 +1,13 @@
 import { useParams, Link } from 'react-router-dom';
-import { mockMembers } from '@/data/mockData';
+import { useMembers } from '@/hooks/useDb';
 import PageHeader from '@/components/shared/PageHeader';
 import { ArrowLeft, MapPin, Globe, Linkedin, Instagram, Twitter, Mail, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const MemberProfile = () => {
   const { id } = useParams();
-  const member = mockMembers.find(m => m.id === id);
+  const { data: members } = useMembers();
+  const member = members.find(m => m.id === id);
 
   if (!member) return (
     <div className="text-center py-16">
@@ -49,7 +50,7 @@ const MemberProfile = () => {
           <div>
             <h3 className="font-display text-lg text-foreground mb-3">Skills</h3>
             <div className="flex flex-wrap gap-2">
-              {member.skills.map(s => (
+              {(member.skills ?? []).map(s => (
                 <span key={s.id} className="bg-gold/10 text-gold-dark px-3 py-1 rounded-full text-sm border border-gold/20">{s.name}</span>
               ))}
             </div>

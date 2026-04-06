@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { mockMatches } from '@/data/mockData';
+import { useMatches } from '@/hooks/useDb';
 import PageHeader from '@/components/shared/PageHeader';
 import { Calendar, MapPin, Trophy, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,8 +8,10 @@ import { cn } from '@/lib/utils';
 const BarcelonaBookings = () => {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
 
-  const upcoming = mockMatches.filter(m => m.is_active && new Date(m.match_date) > new Date());
-  const past = mockMatches.filter(m => !m.is_active || new Date(m.match_date) <= new Date());
+
+  const { data: allMatches } = useMatches();
+  const upcoming = allMatches.filter(m => m.is_active && new Date(m.match_date) > new Date());
+  const past = allMatches.filter(m => !m.is_active || new Date(m.match_date) <= new Date());
 
   const matches = tab === 'upcoming' ? upcoming : past;
 
