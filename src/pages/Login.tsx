@@ -18,7 +18,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Crown, Eye, EyeOff, Mail } from 'lucide-react';
+import { Eye, EyeOff, Mail } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -81,7 +81,7 @@ const Login = () => {
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 bg-navy-gradient items-center justify-center p-12">
         <div className="max-w-md text-center">
-          <Crown className="w-16 h-16 text-gold mx-auto mb-6" />
+          <img src="/onem-logo.jpg" alt="Onem" className="h-24 w-auto object-contain rounded mx-auto mb-6" />
           <h1 className="font-display text-4xl text-gold-light mb-4">Members Club</h1>
           <p className="text-lg" style={{ color: 'hsl(220 20% 70%)' }}>
             An exclusive community of exceptional individuals. Access premium experiences in Granada and Barcelona.
@@ -92,7 +92,7 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <Crown className="w-8 h-8 text-gold" />
+            <img src="/onem-logo.jpg" alt="Onem" className="h-10 w-auto object-contain rounded" />
             <span className="font-display text-2xl text-foreground">Members Club</span>
           </div>
           <h2 className="font-display text-3xl text-foreground mb-2">Sign In</h2>
