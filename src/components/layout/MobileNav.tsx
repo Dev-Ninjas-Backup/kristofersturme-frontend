@@ -52,7 +52,7 @@ const MobileNav = ({ open, onClose }: MobileNavProps) => {
       <div className="absolute inset-y-0 left-0 w-72 bg-sidebar flex flex-col animate-fade-in">
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <img src="/onem-logo.jpg" alt="Onem" className="h-10 w-auto object-contain rounded" />
+            <img src="/onem-logo.jpg" alt="Onem" className="h-16 w-auto object-contain rounded" />
             {isAdmin && (
               <p className="text-xs text-sidebar-foreground/50 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" /> Admin Panel

@@ -48,7 +48,7 @@ const Sidebar = () => {
         {collapsed ? (
           <span className="font-display text-xl text-sidebar-primary font-bold">O</span>
         ) : (
-          <img src="/onem-logo.jpg" alt="Onem" className="h-12 w-auto object-contain rounded" />
+          <img src="/onem-logo.jpg" alt="Onem" className="h-20 w-auto object-contain rounded" />
         )}
       </div>
 
