@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useGranadaBookings, useBarcelonaBookings } from '@/hooks/useDb';
-import { updateGranadaBookingStatus, updateBarcelonaBookingStatus } from '@/lib/db';
+import { updateGranadaBookingStatus, updateBarcelonaBookingStatus, requestGranadaCancellation, requestBarcelonaCancellation } from '@/lib/db';
 import { useAuthStore } from '@/store/authStore';
 import PageHeader from '@/components/shared/PageHeader';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { cn } from '@/lib/utils';
+import type { GranadaBooking, BarcelonaBooking } from '@/types';
 import { Building2, Trophy, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -18,12 +19,19 @@ const MyBookings = () => {
   const myGranada = granadaBookings.filter(b => b.member.user_id === user?.id);
   const myBarcelona = barcelonaBookings.filter(b => b.member.user_id === user?.id);
 
-  const handleCancel = async (id: string, type: 'granada' | 'barcelona') => {
+  // Pending bookings cancel immediately; confirmed bookings require admin approval
+  const handleCancel = async (booking: GranadaBooking | BarcelonaBooking, type: 'granada' | 'barcelona') => {
     try {
-      if (type === 'granada') await updateGranadaBookingStatus(id, 'cancelled');
-      else await updateBarcelonaBookingStatus(id, 'cancelled');
-      toast.success('Booking cancelled');
-    } catch { toast.error('Failed to cancel booking'); }
+      if (booking.status === 'pending') {
+        if (type === 'granada') await updateGranadaBookingStatus(booking.id, 'cancelled');
+        else await updateBarcelonaBookingStatus(booking.id, 'cancelled');
+        toast.success('Booking cancelled');
+      } else {
+        if (type === 'granada') await requestGranadaCancellation(booking.id, booking as GranadaBooking);
+        else await requestBarcelonaCancellation(booking.id, booking as BarcelonaBooking);
+        toast.success('Cancellation request sent — awaiting admin approval');
+      }
+    } catch { toast.error('Failed to process cancellation'); }
   };
 
   return (
@@ -55,9 +63,12 @@ const MyBookings = () => {
               <div className="flex items-center gap-3">
                 <StatusBadge status={b.status} />
                 {(b.status === 'pending' || b.status === 'confirmed') && (
-                  <Button variant="outline" size="sm" onClick={() => handleCancel(b.id, 'granada')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                    Cancel
+                  <Button variant="outline" size="sm" onClick={() => handleCancel(b, 'granada')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                    {b.status === 'confirmed' ? 'Request Cancel' : 'Cancel'}
                   </Button>
+                )}
+                {b.status === 'cancellation_requested' && (
+                  <span className="text-xs text-orange-600 font-medium">Awaiting approval</span>
                 )}
               </div>
             </div>
@@ -79,9 +90,12 @@ const MyBookings = () => {
               <div className="flex items-center gap-3">
                 <StatusBadge status={b.status} />
                 {(b.status === 'pending' || b.status === 'confirmed') && (
-                  <Button variant="outline" size="sm" onClick={() => handleCancel(b.id, 'barcelona')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
-                    Cancel
+                  <Button variant="outline" size="sm" onClick={() => handleCancel(b, 'barcelona')} className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                    {b.status === 'confirmed' ? 'Request Cancel' : 'Cancel'}
                   </Button>
+                )}
+                {b.status === 'cancellation_requested' && (
+                  <span className="text-xs text-orange-600 font-medium">Awaiting approval</span>
                 )}
               </div>
             </div>

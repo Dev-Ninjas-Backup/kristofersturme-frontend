@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { GranadaRoom } from '@/types';
 
-const AdminRooms = () => {
+const AdminRooms = ({ embedded }: { embedded?: boolean } = {}) => {
   const { data: rooms } = useRooms();
   const [editTarget, setEditTarget] = useState<GranadaRoom | null>(null);
   const [editForm, setEditForm] = useState({
@@ -60,8 +60,8 @@ const AdminRooms = () => {
   );
 
   return (
-    <div className="animate-fade-in">
-      <PageHeader title="Manage Rooms" description="Configure Granada rooms" />
+    <div className={embedded ? '' : 'animate-fade-in'}>
+      {!embedded && <PageHeader title="Manage Rooms" description="Configure Granada rooms" />}
 
       <div className="space-y-3">
         {rooms.map(room => (

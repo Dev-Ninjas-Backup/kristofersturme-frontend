@@ -111,7 +111,8 @@ export const mockRooms: GranadaRoom[] = [
   { id: 'r2', room_number: 2, name: 'The Generalife Room', description: 'Elegant room inspired by the Generalife gardens. Includes a reading nook and garden access.', capacity: 2, is_owners: false, is_active: true },
   { id: 'r3', room_number: 3, name: 'The Albaicín Chamber', description: 'Cozy room with whitewashed walls and cobalt blue accents. Perfect for solo travelers.', capacity: 1, is_owners: false, is_active: true },
   { id: 'r4', room_number: 4, name: 'The Sacromonte Loft', description: 'Unique cave-inspired loft with vaulted ceilings and warm lighting.', capacity: 3, is_owners: false, is_active: true },
-  { id: 'r5', room_number: 5, name: "Owner's Private Suite", description: 'Private suite reserved for the club owner.', capacity: 4, is_owners: true, is_active: true },
+  { id: 'r5', room_number: 5, name: 'The Carmen Suite', description: 'Charming suite with a private courtyard garden and Moorish tile details. Ideal for guests seeking tranquility.', capacity: 2, is_owners: false, is_active: true },
+  { id: 'r6', room_number: 6, name: "Owner's Private Suite", description: 'Private suite reserved for the club owner.', capacity: 4, is_owners: true, is_active: true },
 ];
 
 export const mockMatches: BarcelonaMatch[] = [

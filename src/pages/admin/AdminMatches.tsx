@@ -24,7 +24,7 @@ const toLocal = (iso: string) => {
   return iso.slice(0, 16);
 };
 
-const AdminMatches = () => {
+const AdminMatches = ({ embedded }: { embedded?: boolean } = {}) => {
   const { data: matches } = useMatches();
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<BarcelonaMatch | null>(null);
@@ -115,7 +115,7 @@ const AdminMatches = () => {
   );
 
   return (
-    <div className="animate-fade-in">
+    <div className={embedded ? '' : 'animate-fade-in'}>
       <PageHeader title="Manage Matches" description="Create and manage Barcelona matches">
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>

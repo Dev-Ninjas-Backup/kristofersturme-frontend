@@ -1,10 +1,9 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { useNotificationStore } from '@/store/notificationStore';
 import {
-  Crown, LayoutDashboard, Users, Building2, Trophy, CalendarDays,
-  User, Bell, LogOut, X, Settings, ShieldCheck,
+  LayoutDashboard, Users, Building2, Trophy, CalendarDays,
+  User, LogOut, X, Settings, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,13 +16,11 @@ interface NavItem {
   to: string;
   icon: React.ElementType;
   label: string;
-  badge?: number;
 }
 
 const MobileNav = ({ open, onClose }: MobileNavProps) => {
   const user = useAuthStore(s => s.user);
   const logout = useAuthStore(s => s.logout);
-  const unreadCount = useNotificationStore(s => s.unreadCount);
   const navigate = useNavigate();
 
   const isAdmin = user?.role === 'admin';
@@ -35,16 +32,13 @@ const MobileNav = ({ open, onClose }: MobileNavProps) => {
     { to: '/bookings/barcelona', icon: Trophy, label: 'Barcelona' },
     { to: '/my-bookings', icon: CalendarDays, label: 'My Bookings' },
     { to: '/profile', icon: User, label: 'Profile' },
-    { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
   ];
 
   const adminLinks: NavItem[] = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/members', icon: Users, label: 'Members' },
-    { to: '/admin/bookings/granada', icon: Building2, label: 'Granada Bookings' },
-    { to: '/admin/bookings/barcelona', icon: Trophy, label: 'Barcelona Bookings' },
-    { to: '/admin/matches', icon: Trophy, label: 'Matches' },
-    { to: '/admin/rooms', icon: Building2, label: 'Rooms' },
+    { to: '/admin/granada', icon: Building2, label: 'Granada' },
+    { to: '/admin/barcelona', icon: Trophy, label: 'Barcelona' },
     { to: '/admin/rules', icon: Settings, label: 'Rules' },
   ];
 
@@ -58,15 +52,12 @@ const MobileNav = ({ open, onClose }: MobileNavProps) => {
       <div className="absolute inset-y-0 left-0 w-72 bg-sidebar flex flex-col animate-fade-in">
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <Crown className="w-7 h-7 text-sidebar-primary" />
-            <div>
-              <span className="font-display text-lg text-sidebar-primary">Members Club</span>
-              {isAdmin && (
-                <p className="text-xs text-sidebar-foreground/50 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Admin Panel
-                </p>
-              )}
-            </div>
+            <img src="/onem-logo.jpg" alt="Onem" className="h-10 w-auto object-contain rounded" />
+            {isAdmin && (
+              <p className="text-xs text-sidebar-foreground/50 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" /> Admin Panel
+              </p>
+            )}
           </div>
           <button onClick={onClose} className="text-sidebar-foreground"><X className="w-5 h-5" /></button>
         </div>
@@ -78,7 +69,6 @@ const MobileNav = ({ open, onClose }: MobileNavProps) => {
             )}>
               <link.icon className="w-5 h-5" />
               <span>{link.label}</span>
-              {link.badge ? <span className="ml-auto bg-gold text-accent-foreground text-xs font-bold px-2 py-0.5 rounded-full">{link.badge}</span> : null}
             </NavLink>
           ))}
         </nav>

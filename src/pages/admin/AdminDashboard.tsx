@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useGranadaBookings, useBarcelonaBookings, useMembers, useMatches } from '@/hooks/useDb';
 import PageHeader from '@/components/shared/PageHeader';
 import StatusBadge from '@/components/shared/StatusBadge';
-import { Users, Building2, Trophy, CalendarDays } from 'lucide-react';
+import { Users, Building2, Trophy, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const PAGE_SIZE = 10;
 
 const StatCard = ({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: number; color: string }) => (
   <div className="bg-card rounded-xl border border-border p-6">
@@ -18,9 +21,13 @@ const AdminDashboard = () => {
   const { data: granadaBookings } = useGranadaBookings();
   const { data: barcelonaBookings } = useBarcelonaBookings();
   const { data: matches } = useMatches();
+  const [page, setPage] = useState(1);
 
   const allBookings = [...granadaBookings, ...barcelonaBookings];
   const pending = allBookings.filter(b => b.status === 'pending').length;
+
+  const totalPages = Math.max(1, Math.ceil(allBookings.length / PAGE_SIZE));
+  const pagedBookings = allBookings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="animate-fade-in">
@@ -46,25 +53,64 @@ const AdminDashboard = () => {
               <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Status</th>
             </tr></thead>
             <tbody>
-              {granadaBookings.map(b => (
-                <tr key={b.id} className="border-b border-border last:border-0">
-                  <td className="px-6 py-4 text-sm text-foreground">{b.member.first_name} {b.member.last_name}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground"><span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> Granada</span></td>
-                  <td className="px-6 py-4 text-sm text-foreground">{b.room.name}</td>
-                  <td className="px-6 py-4"><StatusBadge status={b.status} /></td>
-                </tr>
-              ))}
-              {barcelonaBookings.map(b => (
-                <tr key={b.id} className="border-b border-border last:border-0">
-                  <td className="px-6 py-4 text-sm text-foreground">{b.member.first_name} {b.member.last_name}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground"><span className="flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> Barcelona</span></td>
-                  <td className="px-6 py-4 text-sm text-foreground">vs {b.match.opponent}</td>
-                  <td className="px-6 py-4"><StatusBadge status={b.status} /></td>
-                </tr>
-              ))}
+              {pagedBookings.length === 0 && (
+                <tr><td colSpan={4} className="px-6 py-8 text-center text-sm text-muted-foreground">No bookings yet.</td></tr>
+              )}
+              {pagedBookings.map(b => {
+                const isGranada = 'room' in b;
+                return (
+                  <tr key={b.id} className="border-b border-border last:border-0">
+                    <td className="px-6 py-4 text-sm text-foreground">{b.member.first_name} {b.member.last_name}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        {isGranada ? <Building2 className="w-3.5 h-3.5" /> : <Trophy className="w-3.5 h-3.5" />}
+                        {isGranada ? 'Granada' : 'Barcelona'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-foreground">
+                      {isGranada ? b.room.name : `vs ${b.match.opponent}`}
+                    </td>
+                    <td className="px-6 py-4"><StatusBadge status={b.status} /></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+            <p className="text-sm text-muted-foreground">
+              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, allBookings.length)} of {allBookings.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1.5 rounded-md hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  onClick={() => setPage(n)}
+                  className={`min-w-[2rem] h-8 px-2 rounded-md text-sm font-medium transition-colors ${
+                    n === page ? 'bg-navy text-gold' : 'hover:bg-muted text-foreground'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-1.5 rounded-md hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

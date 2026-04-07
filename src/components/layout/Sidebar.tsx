@@ -1,9 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { useNotificationStore } from '@/store/notificationStore';
 import {
-  Crown, LayoutDashboard, Users, Building2, Trophy, CalendarDays,
-  User, Bell, LogOut, Settings, ChevronLeft, ChevronRight, ShieldCheck,
+  LayoutDashboard, Users, Building2, Trophy, CalendarDays,
+  User, LogOut, Settings, ChevronLeft, ChevronRight, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -11,7 +10,6 @@ import { useState } from 'react';
 const Sidebar = () => {
   const user = useAuthStore(s => s.user);
   const logout = useAuthStore(s => s.logout);
-  const unreadCount = useNotificationStore(s => s.unreadCount);
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -24,16 +22,13 @@ const Sidebar = () => {
     { to: '/bookings/barcelona', icon: Trophy, label: 'Barcelona' },
     { to: '/my-bookings', icon: CalendarDays, label: 'My Bookings' },
     { to: '/profile', icon: User, label: 'Profile' },
-    { to: '/notifications', icon: Bell, label: 'Notifications', badge: unreadCount },
   ];
 
   const adminLinks = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/members', icon: Users, label: 'Members' },
-    { to: '/admin/bookings/granada', icon: Building2, label: 'Granada Bookings' },
-    { to: '/admin/bookings/barcelona', icon: Trophy, label: 'Barcelona Bookings' },
-    { to: '/admin/matches', icon: Trophy, label: 'Matches' },
-    { to: '/admin/rooms', icon: Building2, label: 'Rooms' },
+    { to: '/admin/granada', icon: Building2, label: 'Granada' },
+    { to: '/admin/barcelona', icon: Trophy, label: 'Barcelona' },
     { to: '/admin/rules', icon: Settings, label: 'Rules' },
   ];
 
@@ -49,9 +44,12 @@ const Sidebar = () => {
       "hidden lg:flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
       collapsed ? "w-[72px]" : "w-64"
     )}>
-      <div className="flex items-center gap-3 p-4 border-b border-sidebar-border">
-        <Crown className="w-7 h-7 text-sidebar-primary shrink-0" />
-        {!collapsed && <span className="font-display text-lg text-sidebar-primary">Members Club</span>}
+      <div className="flex items-center justify-center p-4 border-b border-sidebar-border">
+        {collapsed ? (
+          <span className="font-display text-xl text-sidebar-primary font-bold">O</span>
+        ) : (
+          <img src="/onem-logo.jpg" alt="Onem" className="h-12 w-auto object-contain rounded" />
+        )}
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -62,9 +60,6 @@ const Sidebar = () => {
           )}>
             <link.icon className="w-5 h-5 shrink-0" />
             {!collapsed && <span>{link.label}</span>}
-            {!collapsed && link.badge ? (
-              <span className="ml-auto bg-gold text-accent-foreground text-xs font-bold px-2 py-0.5 rounded-full">{link.badge}</span>
-            ) : null}
           </NavLink>
         ))}
 

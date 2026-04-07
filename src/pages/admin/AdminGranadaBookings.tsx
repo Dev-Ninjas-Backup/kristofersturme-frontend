@@ -4,18 +4,18 @@ import { updateGranadaBookingStatus } from '@/lib/db';
 import PageHeader from '@/components/shared/PageHeader';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Check, X, CheckCircle } from 'lucide-react';
+import { Check, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import type { BookingStatus } from '@/types';
+import type { GranadaBooking, BookingStatus } from '@/types';
 
-const AdminGranadaBookings = () => {
+const AdminGranadaBookings = ({ embedded }: { embedded?: boolean } = {}) => {
   const { data: bookings, loading } = useGranadaBookings();
   const [updating, setUpdating] = useState<string | null>(null);
 
-  const changeStatus = async (id: string, status: BookingStatus, label: string) => {
-    setUpdating(id + status);
+  const changeStatus = async (booking: GranadaBooking, status: BookingStatus, label: string) => {
+    setUpdating(booking.id + status);
     try {
-      await updateGranadaBookingStatus(id, status);
+      await updateGranadaBookingStatus(booking.id, status, booking);
       toast.success(`Booking ${label}`);
     } catch {
       toast.error('Failed to update booking');
@@ -25,45 +25,77 @@ const AdminGranadaBookings = () => {
   };
 
   return (
-    <div className="animate-fade-in">
-      <PageHeader title="Granada Bookings" description="Manage all room bookings" />
+    <div className={embedded ? '' : 'animate-fade-in'}>
+      {!embedded && <PageHeader title="Granada Bookings" description="Manage all room bookings" />}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead><tr className="border-b border-border">
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Member</th>
               <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Room</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Check-in</th>
-              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Check-out</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Dates</th>
+              <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Guests</th>
               <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Status</th>
               <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Actions</th>
             </tr></thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-muted-foreground">Loading...</td></tr>
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-muted-foreground">Loading...</td></tr>
               )}
               {!loading && bookings.length === 0 && (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-sm text-muted-foreground">No bookings yet.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-muted-foreground">No bookings yet.</td></tr>
               )}
               {bookings.map(b => (
                 <tr key={b.id} className="border-b border-border last:border-0">
-                  <td className="px-6 py-4 text-sm text-foreground">{b.member.first_name} {b.member.last_name}</td>
-                  <td className="px-6 py-4 text-sm text-foreground">{b.room.name}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{b.check_in}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{b.check_out}</td>
+                  <td className="px-6 py-4 text-sm">
+                    <div className="font-medium text-foreground">{b.room.name}</div>
+                    <div className="text-xs text-muted-foreground">Room #{b.room.room_number}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-muted-foreground">
+                    <div>{b.check_in}</div>
+                    <div className="text-xs">→ {b.check_out}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <div className="space-y-1">
+                      {(b.guests ?? []).map((g, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          <span className="w-5 h-5 rounded-full bg-navy/10 text-navy font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                          <span className="font-medium text-foreground">{g.name}</span>
+                          {g.email && <span className="text-muted-foreground">{g.email}</span>}
+                          {g.contact && <span className="text-muted-foreground">{g.contact}</span>}
+                        </div>
+                      ))}
+                      {(!b.guests || b.guests.length === 0) && (
+                        <span className="text-muted-foreground">{b.member.first_name} {b.member.last_name}</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4"><StatusBadge status={b.status} /></td>
                   <td className="px-6 py-4">
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" disabled={!!updating} onClick={() => changeStatus(b.id, 'confirmed', 'confirmed')} title="Confirm">
-                        <Check className="w-4 h-4 text-emerald-600" />
-                      </Button>
-                      <Button variant="ghost" size="sm" disabled={!!updating} onClick={() => changeStatus(b.id, 'completed', 'completed')} title="Complete">
-                        <CheckCircle className="w-4 h-4 text-blue-600" />
-                      </Button>
-                      <Button variant="ghost" size="sm" disabled={!!updating} onClick={() => changeStatus(b.id, 'cancelled', 'cancelled')} title="Cancel">
-                        <X className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
+                    {b.status === 'cancellation_requested' ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-orange-600 mr-1 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" /> Cancel req.
+                        </span>
+                        <Button variant="ghost" size="sm" disabled={!!updating} onClick={() => changeStatus(b, 'cancelled', 'cancellation approved')} title="Approve cancellation">
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" disabled={!!updating} onClick={() => changeStatus(b, 'confirmed', 'cancellation rejected')} title="Reject cancellation">
+                          <X className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" disabled={!!updating} onClick={() => changeStatus(b, 'confirmed', 'confirmed')} title="Confirm">
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" disabled={!!updating} onClick={() => changeStatus(b, 'completed', 'completed')} title="Complete">
+                          <CheckCircle className="w-4 h-4 text-blue-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" disabled={!!updating} onClick={() => changeStatus(b, 'cancelled', 'cancelled')} title="Cancel">
+                          <X className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

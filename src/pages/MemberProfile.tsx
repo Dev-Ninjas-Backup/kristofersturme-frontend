@@ -30,6 +30,9 @@ const MemberProfile = () => {
             </div>
             <div>
               <h1 className="font-display text-2xl text-gold-light">{member.first_name} {member.last_name}</h1>
+              {member.occupation && (
+                <p className="text-sm mt-0.5" style={{ color: 'hsl(60 16% 75%)' }}>{member.occupation}</p>
+              )}
               {member.location && (
                 <p className="flex items-center gap-1.5 mt-1" style={{ color: 'hsl(220 20% 70%)' }}>
                   <MapPin className="w-4 h-4" /> {member.location.city}, {member.location.country}

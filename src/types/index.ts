@@ -26,6 +26,7 @@ export interface MemberProfile {
   last_name: string;
   avatar_url: string | null;
   bio: string | null;
+  occupation: string | null;
   phone: string | null;
   website_url: string | null;
   linkedin_url: string | null;
@@ -46,7 +47,7 @@ export interface GranadaRoom {
   is_active: boolean;
 }
 
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
+export type BookingStatus = 'pending' | 'confirmed' | 'cancellation_requested' | 'cancelled' | 'completed';
 
 export interface GranadaBooking {
   id: string;
@@ -54,6 +55,7 @@ export interface GranadaBooking {
   room: GranadaRoom;
   check_in: string;
   check_out: string;
+  guests: BookingGuest[];
   status: BookingStatus;
   notes: string | null;
   created_at: string;
@@ -70,11 +72,18 @@ export interface BarcelonaMatch {
   is_active: boolean;
 }
 
+export interface BookingGuest {
+  name: string;
+  email: string | null;
+  contact: string | null;
+}
+
 export interface BarcelonaBooking {
   id: string;
   member: MemberProfile;
   match: BarcelonaMatch;
   seats: number;
+  guests: BookingGuest[];
   status: BookingStatus;
   notes: string | null;
   created_at: string;

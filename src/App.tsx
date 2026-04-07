@@ -24,10 +24,8 @@ import Profile from "@/pages/Profile";
 import Notifications from "@/pages/Notifications";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminMembers from "@/pages/admin/AdminMembers";
-import AdminGranadaBookings from "@/pages/admin/AdminGranadaBookings";
-import AdminBarcelonaBookings from "@/pages/admin/AdminBarcelonaBookings";
-import AdminMatches from "@/pages/admin/AdminMatches";
-import AdminRooms from "@/pages/admin/AdminRooms";
+import AdminGranada from "@/pages/admin/AdminGranada";
+import AdminBarcelona from "@/pages/admin/AdminBarcelona";
 import AdminRules from "@/pages/admin/AdminRules";
 import NotFound from "@/pages/NotFound";
 
@@ -105,10 +103,13 @@ const App = () => (
             <Route element={<AdminRoute />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/members" element={<AdminMembers />} />
-              <Route path="/admin/bookings/granada" element={<AdminGranadaBookings />} />
-              <Route path="/admin/bookings/barcelona" element={<AdminBarcelonaBookings />} />
-              <Route path="/admin/matches" element={<AdminMatches />} />
-              <Route path="/admin/rooms" element={<AdminRooms />} />
+              <Route path="/admin/granada" element={<AdminGranada />} />
+              <Route path="/admin/barcelona" element={<AdminBarcelona />} />
+              {/* Legacy routes redirect to combined pages */}
+              <Route path="/admin/bookings/granada" element={<Navigate to="/admin/granada" replace />} />
+              <Route path="/admin/bookings/barcelona" element={<Navigate to="/admin/barcelona" replace />} />
+              <Route path="/admin/matches" element={<Navigate to="/admin/barcelona" replace />} />
+              <Route path="/admin/rooms" element={<Navigate to="/admin/granada" replace />} />
               <Route path="/admin/rules" element={<AdminRules />} />
             </Route>
           </Route>

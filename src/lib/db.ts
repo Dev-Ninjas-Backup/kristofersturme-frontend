@@ -1,5 +1,5 @@
 import {
-  ref, get, set, update, remove, push, onValue, off,
+  ref, get, set, update, remove, push, onValue, off, runTransaction,
   type DataSnapshot,
 } from 'firebase/database';
 import {
@@ -49,6 +49,29 @@ export const updateMember = (id: string, data: Partial<MemberProfile>) =>
 
 export const deleteMember = (id: string) => remove(r(`members/${id}`));
 
+export const createMemberProfile = async (uid: string, email: string) => {
+  const memberId = `m_${uid.slice(0, 8)}`;
+  const profile: MemberProfile = {
+    id: memberId,
+    user_id: uid,
+    first_name: email.split('@')[0],
+    last_name: '',
+    avatar_url: null,
+    bio: null,
+    occupation: null,
+    phone: null,
+    website_url: null,
+    linkedin_url: null,
+    instagram_url: null,
+    twitter_url: null,
+    is_visible: true,
+    location: null,
+    skills: [],
+  };
+  await set(r(`members/${memberId}`), profile);
+  return profile;
+};
+
 // ─── rooms ────────────────────────────────────────────────────────────────────
 
 export const onRooms = (cb: (rooms: GranadaRoom[]) => void) => {
@@ -78,6 +101,30 @@ export const updateMatch = (id: string, data: Partial<BarcelonaMatch>) =>
 
 export const deleteMatch = (id: string) => remove(r(`matches/${id}`));
 
+// ─── notifications ────────────────────────────────────────────────────────────
+
+const pushNotification = async (uid: string, type: string, title: string, message: string) => {
+  const newRef = push(r(`notifications/${uid}`));
+  await set(newRef, {
+    id: newRef.key,
+    type,
+    title,
+    message,
+    is_read: false,
+    created_at: new Date().toISOString(),
+  });
+};
+
+const pushAdminNotification = async (type: string, title: string, message: string) => {
+  const snap = await get(r('users'));
+  if (!snap.exists()) return;
+  const users = snap.val() as Record<string, { role: string }>;
+  const adminUids = Object.entries(users)
+    .filter(([, u]) => u.role === 'admin')
+    .map(([uid]) => uid);
+  await Promise.all(adminUids.map(uid => pushNotification(uid, type, title, message)));
+};
+
 // ─── granada bookings ─────────────────────────────────────────────────────────
 
 export const onGranadaBookings = (cb: (bookings: GranadaBooking[]) => void) => {
@@ -86,13 +133,85 @@ export const onGranadaBookings = (cb: (bookings: GranadaBooking[]) => void) => {
   return () => off(ref_);
 };
 
-export const createGranadaBooking = (data: Omit<GranadaBooking, 'id'>) => {
+export const createGranadaBooking = async (data: Omit<GranadaBooking, 'id'>) => {
   const newRef = push(r('granadaBookings'));
-  return set(newRef, { ...data, id: newRef.key });
+  await set(newRef, { ...data, id: newRef.key });
+  const memberName = `${data.member.first_name} ${data.member.last_name}`.trim();
+  await Promise.all([
+    pushNotification(
+      data.member.user_id,
+      'booking',
+      'Booking Request Received',
+      `Your request for ${data.room.name} (${data.check_in} → ${data.check_out}) has been submitted and is awaiting confirmation.`,
+    ),
+    pushAdminNotification(
+      'booking',
+      'New Granada Booking',
+      `${memberName} requested ${data.room.name} (${data.check_in} → ${data.check_out}).`,
+    ),
+  ]);
 };
 
-export const updateGranadaBookingStatus = (id: string, status: BookingStatus) =>
-  update(r(`granadaBookings/${id}`), { status });
+export const updateGranadaBookingStatus = async (
+  id: string,
+  status: BookingStatus,
+  booking?: GranadaBooking,
+) => {
+  await update(r(`granadaBookings/${id}`), { status });
+  if (!booking) return;
+  const uid = booking.member.user_id;
+  const room = booking.room.name;
+  const dates = `${booking.check_in} → ${booking.check_out}`;
+  const prevStatus = booking.status;
+
+  if (prevStatus === 'cancellation_requested' && status === 'cancelled')
+    await pushNotification(uid, 'booking', 'Cancellation Approved', `Your cancellation request for ${room} (${dates}) has been approved.`);
+  else if (prevStatus === 'cancellation_requested' && status === 'confirmed')
+    await pushNotification(uid, 'booking', 'Cancellation Rejected', `Your cancellation request for ${room} (${dates}) was not approved. Your booking remains confirmed.`);
+  else if (status === 'confirmed')
+    await pushNotification(uid, 'booking', 'Booking Confirmed', `Your booking for ${room} (${dates}) has been confirmed.`);
+  else if (status === 'cancelled')
+    await pushNotification(uid, 'booking', 'Booking Cancelled', `Your booking for ${room} (${dates}) has been cancelled by the admin.`);
+  else if (status === 'completed')
+    await pushNotification(uid, 'booking', 'Stay Completed', `We hope you enjoyed your stay at ${room}. Thank you!`);
+};
+
+export const requestGranadaCancellation = async (id: string, booking: GranadaBooking) => {
+  await update(r(`granadaBookings/${id}`), { status: 'cancellation_requested' });
+  const memberName = `${booking.member.first_name} ${booking.member.last_name}`.trim();
+  await Promise.all([
+    pushNotification(
+      booking.member.user_id,
+      'booking',
+      'Cancellation Requested',
+      `Your cancellation request for ${booking.room.name} (${booking.check_in} → ${booking.check_out}) is awaiting admin approval.`,
+    ),
+    pushAdminNotification(
+      'booking',
+      'Cancellation Request — Granada',
+      `${memberName} requested cancellation for ${booking.room.name} (${booking.check_in} → ${booking.check_out}).`,
+    ),
+  ]);
+};
+
+export const requestBarcelonaCancellation = async (id: string, booking: BarcelonaBooking) => {
+  await update(r(`barcelonaBookings/${id}`), { status: 'cancellation_requested' });
+  const memberName = `${booking.member.first_name} ${booking.member.last_name}`.trim();
+  const seats = `${booking.seats} seat${booking.seats > 1 ? 's' : ''}`;
+  await Promise.all([
+    pushNotification(
+      booking.member.user_id,
+      'booking',
+      'Cancellation Requested',
+      `Your cancellation request for FC Barcelona vs ${booking.match.opponent} (${seats}) is awaiting admin approval.`,
+    ),
+    pushAdminNotification(
+      'booking',
+      'Cancellation Request — Barcelona',
+      `${memberName} requested cancellation for FC Barcelona vs ${booking.match.opponent} (${seats}).`,
+    ),
+  ]);
+};
 
 // ─── barcelona bookings ───────────────────────────────────────────────────────
 
@@ -102,13 +221,67 @@ export const onBarcelonaBookings = (cb: (bookings: BarcelonaBooking[]) => void) 
   return () => off(ref_);
 };
 
-export const createBarcelonaBooking = (data: Omit<BarcelonaBooking, 'id'>) => {
+export const createBarcelonaBooking = async (data: Omit<BarcelonaBooking, 'id'>) => {
   const newRef = push(r('barcelonaBookings'));
-  return set(newRef, { ...data, id: newRef.key });
+  await set(newRef, { ...data, id: newRef.key });
+  await runTransaction(r(`matches/${data.match.id}/seats_remaining`), current =>
+    Math.max(0, (current ?? 0) - data.seats)
+  );
+  const memberName = `${data.member.first_name} ${data.member.last_name}`.trim();
+  const seats = `${data.seats} seat${data.seats > 1 ? 's' : ''}`;
+  await Promise.all([
+    pushNotification(
+      data.member.user_id,
+      'booking',
+      'Booking Request Received',
+      `Your request for ${seats} at FC Barcelona vs ${data.match.opponent} has been submitted and is awaiting confirmation.`,
+    ),
+    pushAdminNotification(
+      'booking',
+      'New Barcelona Booking',
+      `${memberName} requested ${seats} for FC Barcelona vs ${data.match.opponent}.`,
+    ),
+  ]);
 };
 
-export const updateBarcelonaBookingStatus = (id: string, status: BookingStatus) =>
-  update(r(`barcelonaBookings/${id}`), { status });
+export const updateBarcelonaBookingStatus = async (
+  id: string,
+  newStatus: BookingStatus,
+  booking?: BarcelonaBooking,
+) => {
+  await update(r(`barcelonaBookings/${id}`), { status: newStatus });
+  if (!booking) return;
+
+  const prevStatus = booking.status;
+  const uid = booking.member.user_id;
+  const match = `FC Barcelona vs ${booking.match.opponent}`;
+  const seats = `${booking.seats} seat${booking.seats > 1 ? 's' : ''}`;
+
+  // Seat delta
+  let delta = 0;
+  if (newStatus === 'cancelled' && prevStatus !== 'cancelled') delta = +booking.seats;
+  if (newStatus !== 'cancelled' && prevStatus === 'cancelled') delta = -booking.seats;
+
+  if (delta !== 0) {
+    const totalSnap = await get(r(`matches/${booking.match.id}/total_seats`));
+    const total: number = totalSnap.val() ?? 999;
+    await runTransaction(r(`matches/${booking.match.id}/seats_remaining`), current =>
+      Math.min(total, Math.max(0, (current ?? 0) + delta))
+    );
+  }
+
+  // Notifications — check cancellation_requested transitions first
+  if (prevStatus === 'cancellation_requested' && newStatus === 'cancelled')
+    await pushNotification(uid, 'booking', 'Cancellation Approved', `Your cancellation request for ${match} (${seats}) has been approved.`);
+  else if (prevStatus === 'cancellation_requested' && newStatus === 'confirmed')
+    await pushNotification(uid, 'booking', 'Cancellation Rejected', `Your cancellation request for ${match} was not approved. Your booking remains confirmed.`);
+  else if (newStatus === 'confirmed')
+    await pushNotification(uid, 'booking', 'Booking Confirmed', `Your booking for ${seats} at ${match} has been confirmed.`);
+  else if (newStatus === 'cancelled')
+    await pushNotification(uid, 'booking', 'Booking Cancelled', `Your booking for ${seats} at ${match} has been cancelled by the admin.`);
+  else if (newStatus === 'completed')
+    await pushNotification(uid, 'booking', 'Match Completed', `We hope you enjoyed the match: ${match}!`);
+};
 
 // ─── notifications ────────────────────────────────────────────────────────────
 
@@ -161,6 +334,7 @@ export const createMemberUser = async (
     last_name: lastName,
     avatar_url: null,
     bio: null,
+    occupation: null,
     phone: null,
     website_url: null,
     linkedin_url: null,

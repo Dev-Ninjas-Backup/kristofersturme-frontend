@@ -18,6 +18,7 @@ const MemberCard = ({ member }: { member: MemberProfile }) => (
       </div>
       <div className="min-w-0">
         <h3 className="font-semibold text-foreground truncate">{member.first_name} {member.last_name}</h3>
+        {member.occupation && <p className="text-xs text-foreground/70 truncate">{member.occupation}</p>}
         {member.location && (
           <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{member.location.city}, {member.location.country}</p>
         )}
@@ -40,7 +41,7 @@ const Members = () => {
 
   const filtered = members.filter(m => {
     const q = search.toLowerCase();
-    const matchesSearch = !q || m.first_name.toLowerCase().includes(q) || m.last_name.toLowerCase().includes(q) || m.bio?.toLowerCase().includes(q) || (m.skills ?? []).some(s => s.name.toLowerCase().includes(q));
+    const matchesSearch = !q || m.first_name.toLowerCase().includes(q) || m.last_name.toLowerCase().includes(q) || m.bio?.toLowerCase().includes(q) || m.occupation?.toLowerCase().includes(q) || (m.skills ?? []).some(s => s.name.toLowerCase().includes(q));
     const matchesSkill = !skillFilter || (m.skills ?? []).some(s => s.slug === skillFilter);
     return matchesSearch && matchesSkill;
   });

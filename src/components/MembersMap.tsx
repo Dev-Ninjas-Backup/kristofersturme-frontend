@@ -48,6 +48,7 @@ const MembersMap = ({ members }: Props) => {
               <Link to={`/members/${m.id}`} className="no-underline">
                 <div className="text-center p-1">
                   <div className="font-semibold text-sm">{m.first_name} {m.last_name}</div>
+                  {m.occupation && <div className="text-xs text-gray-600">{m.occupation}</div>}
                   <div className="text-xs text-gray-500">{m.location!.city}, {m.location!.country}</div>
                   <div className="flex gap-1 mt-1 justify-center flex-wrap">
                     {(m.skills ?? []).slice(0, 2).map(s => (
