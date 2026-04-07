@@ -110,7 +110,7 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setResetOpen(true)}
-                  className="text-xs text-gold hover:text-gold-dark transition-colors"
+                  className="text-xs text-navy hover:opacity-70 transition-colors"
                 >
                   Forgot password?
                 </button>
@@ -123,7 +123,7 @@ const Login = () => {
               </div>
               {errors.password && <p className="text-sm text-destructive mt-1">{errors.password.message}</p>}
             </div>
-            <Button type="submit" disabled={isSubmitting} className="w-full bg-gold-gradient text-accent-foreground hover:opacity-90 font-semibold">
+            <Button type="submit" disabled={isSubmitting} className="w-full bg-gold-gradient text-white hover:opacity-90 font-semibold">
               {isSubmitting ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
@@ -159,7 +159,7 @@ const Login = () => {
               Cancel
             </Button>
             <Button
-              className="bg-gold-gradient text-accent-foreground hover:opacity-90"
+              className="bg-gold-gradient text-white hover:opacity-90"
               disabled={resetSending}
               onClick={handlePasswordReset}
             >
