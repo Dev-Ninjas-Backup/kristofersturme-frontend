@@ -98,6 +98,17 @@ export interface Notification {
   created_at: string;
 }
 
+export interface Invitation {
+  token: string;
+  email: string | null;
+  created_at: string;
+  expires_at: string | null;   // null = never expires
+  created_by: string;
+  status: 'pending' | 'used' | 'revoked';
+  max_uses: number | null;     // null = unlimited
+  used_count: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

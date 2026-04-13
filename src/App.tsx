@@ -27,6 +27,7 @@ import AdminMembers from "@/pages/admin/AdminMembers";
 import AdminGranada from "@/pages/admin/AdminGranada";
 import AdminBarcelona from "@/pages/admin/AdminBarcelona";
 import AdminRules from "@/pages/admin/AdminRules";
+import JoinInvite from "@/pages/JoinInvite";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/join/:token" element={<JoinInvite />} />
 
           {/* User panel */}
           <Route element={<PortalLayout />}>

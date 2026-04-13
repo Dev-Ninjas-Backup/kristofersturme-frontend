@@ -10,7 +10,7 @@ import {
 import { database, secondaryAuth } from './firebase';
 import type {
   MemberProfile, GranadaRoom, BarcelonaMatch,
-  GranadaBooking, BarcelonaBooking, Notification, BookingStatus,
+  GranadaBooking, BarcelonaBooking, Notification, BookingStatus, Invitation,
 } from '@/types';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -348,6 +348,68 @@ export const createMemberUser = async (
 
   return { uid, memberId };
 };
+
+// ─── invitations ─────────────────────────────────────────────────────────────
+
+const generateToken = (): string => {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+};
+
+export const createInvitation = async (
+  email: string | null,
+  createdByUid: string,
+  maxUses: number | null = null,
+  expiresAt: string | null = null,
+): Promise<string> => {
+  const token = generateToken();
+  await set(r(`invitations/${token}`), {
+    token,
+    email: email || null,
+    created_at: new Date().toISOString(),
+    expires_at: expiresAt,
+    created_by: createdByUid,
+    status: 'pending',
+    max_uses: maxUses,
+    used_count: 0,
+  });
+  return token;
+};
+
+export const getInvitation = async (token: string): Promise<Invitation | null> => {
+  const snap = await get(r(`invitations/${token}`));
+  return snap.exists() ? (snap.val() as Invitation) : null;
+};
+
+export const onInvitations = (cb: (invites: Invitation[]) => void) => {
+  const ref_ = r('invitations');
+  onValue(ref_, snap => {
+    if (!snap.exists()) { cb([]); return; }
+    const val = snap.val() as Record<string, Invitation>;
+    const invites = Object.values(val).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    cb(invites);
+  });
+  return () => off(ref_);
+};
+
+export const revokeInvitation = (token: string) =>
+  update(r(`invitations/${token}`), { status: 'revoked' });
+
+export const markInvitationUsed = (token: string) =>
+  runTransaction(r(`invitations/${token}`), (current: Invitation | null) => {
+    if (!current) return current;
+    const newCount = (current.used_count ?? 0) + 1;
+    // max_uses comes back as undefined from Firebase (null is not stored) — use != null (loose)
+    const maxUses = current.max_uses ?? null;
+    const reachedLimit = maxUses != null && newCount >= maxUses;
+    return { ...current, used_count: newCount, status: reachedLimit ? 'used' : 'pending' };
+  });
 
 // ─── seed superadmin (runs once on app start) ─────────────────────────────────
 

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMembers } from '@/hooks/useDb';
-import { updateMember, deleteMember, createMemberUser } from '@/lib/db';
+import { updateMember, deleteMember, createMemberUser, createInvitation, onInvitations, revokeInvitation } from '@/lib/db';
+import { useAuthStore } from '@/store/authStore';
 import PageHeader from '@/components/shared/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,9 +15,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Search, MoreHorizontal, Eye, EyeOff, Trash2, UserCircle, Pencil, UserPlus } from 'lucide-react';
+import { Search, MoreHorizontal, Eye, EyeOff, Trash2, UserCircle, Pencil, UserPlus, Link2, Copy, X, Mail } from 'lucide-react';
 import { toast } from 'sonner';
-import type { MemberProfile } from '@/types';
+import type { MemberProfile, Invitation } from '@/types';
 
 type Action = 'view' | 'toggle-visibility' | 'remove' | 'edit' | null;
 
@@ -36,6 +37,7 @@ const emptyCreate = { first_name: '', last_name: '', email: '', password: '', ro
 
 const AdminMembers = () => {
   const { data: members, loading } = useMembers();
+  const user = useAuthStore(s => s.user);
   const [search, setSearch] = useState('');
 
   // existing member actions
@@ -47,6 +49,24 @@ const AdminMembers = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreate);
   const [creating, setCreating] = useState(false);
+
+  // invitations
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: '', maxUses: 'unlimited', expiry: '7d' });
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [generatingLink, setGeneratingLink] = useState(false);
+
+  useEffect(() => {
+    const unsub = onInvitations(setInvitations);
+    return unsub;
+  }, []);
+
+  const pendingInvites = invitations.filter(i => {
+    if (i.status !== 'pending') return false;
+    if (i.expires_at && new Date() > new Date(i.expires_at)) return false;
+    return true;
+  });
 
   const filtered = members.filter(m => {
     const q = search.toLowerCase();
@@ -124,6 +144,68 @@ const AdminMembers = () => {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    const doFallback = () => {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+      document.body.appendChild(el);
+      el.select();
+      try { document.execCommand('copy'); toast.success('Link copied to clipboard'); }
+      catch { toast.error('Copy failed — select the link and copy manually'); }
+      document.body.removeChild(el);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => toast.success('Link copied to clipboard')).catch(doFallback);
+    } else {
+      doFallback();
+    }
+  };
+
+  const handleGenerateInvite = async () => {
+    if (!user) return;
+    setGeneratingLink(true);
+    try {
+      const maxUses = inviteForm.maxUses === 'unlimited' ? null : parseInt(inviteForm.maxUses);
+      let expiresAt: string | null = null;
+      if (inviteForm.expiry !== 'never') {
+        const days = parseInt(inviteForm.expiry);
+        expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+      }
+      const token = await createInvitation(inviteForm.email.trim() || null, user.id, maxUses, expiresAt);
+      setGeneratedLink(`${window.location.origin}/join/${token}`);
+    } catch (err: unknown) {
+      const msg = (err as { message?: string }).message ?? '';
+      if (msg.includes('PERMISSION_DENIED')) {
+        toast.error('Permission denied — check your Firebase security rules for /invitations');
+      } else {
+        toast.error(`Failed to generate link: ${msg || 'unknown error'}`);
+      }
+      console.error('createInvitation error:', err);
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const handleRevoke = async (token: string) => {
+    try {
+      await revokeInvitation(token);
+      toast.success('Invite link revoked');
+    } catch {
+      toast.error('Failed to revoke invite');
+    }
+  };
+
+  const closeInviteModal = () => {
+    setInviteOpen(false);
+    setInviteForm({ email: '', maxUses: 'unlimited', expiry: '7d' });
+    setGeneratedLink(null);
+  };
+
+  const invf = (key: keyof typeof inviteForm) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setInviteForm(f => ({ ...f, [key]: e.target.value }));
+
   const ef = (key: keyof typeof editForm) => (
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setEditForm(f => ({ ...f, [key]: e.target.value }))
@@ -140,6 +222,12 @@ const AdminMembers = () => {
         title="Manage Members"
         description={loading ? 'Loading...' : `${members.length} registered members`}
       >
+        <Button
+          variant="outline"
+          onClick={() => setInviteOpen(true)}
+        >
+          <Link2 className="w-4 h-4 mr-1.5" /> Invite Member
+        </Button>
         <Button
           className="bg-gold-gradient text-accent-foreground hover:opacity-90"
           onClick={() => setCreateOpen(true)}
@@ -189,6 +277,187 @@ const AdminMembers = () => {
           </table>
         </div>
       </div>
+
+      {/* ── Pending Invitations ───────────────────────────────────── */}
+      {pendingInvites.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+            Pending Invitations ({pendingInvites.length})
+          </h3>
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead><tr className="border-b border-border">
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Email</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Uses</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Expires</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Actions</th>
+                </tr></thead>
+                <tbody>
+                  {pendingInvites.map(inv => (
+                    <tr key={inv.token} className="border-b border-border last:border-0 hover:bg-muted/50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <span>{inv.email || <span className="text-muted-foreground italic">Any email</span>}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className="font-medium">{inv.used_count ?? 0}</span>
+                        <span className="text-muted-foreground"> / {inv.max_uses ?? '∞'}</span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : <span className="text-emerald-600">Never</span>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(`${window.location.origin}/join/${inv.token}`)}
+                            className="text-xs gap-1.5"
+                          >
+                            <Copy className="w-3.5 h-3.5" /> Copy Link
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRevoke(inv.token)}
+                            className="text-xs gap-1.5 text-destructive hover:text-destructive"
+                          >
+                            <X className="w-3.5 h-3.5" /> Revoke
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Invite Member Modal ───────────────────────────────────── */}
+      <Dialog open={inviteOpen} onOpenChange={open => { if (!generatingLink) { if (!open) closeInviteModal(); else setInviteOpen(true); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="w-5 h-5" /> Invite Member
+            </DialogTitle>
+            <DialogDescription>
+              Generate a magic link and share it with the member. They'll click it to create their own account.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!generatedLink ? (
+            <>
+              <div className="py-2 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite_email">Email address <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                  <Input
+                    id="invite_email"
+                    type="email"
+                    value={inviteForm.email}
+                    onChange={invf('email')}
+                    placeholder="member@example.com"
+                    autoFocus
+                  />
+                  <p className="text-xs text-muted-foreground">If set, the link is locked to this email.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="invite_max_uses">Max uses</Label>
+                    <select
+                      id="invite_max_uses"
+                      value={inviteForm.maxUses}
+                      onChange={invf('maxUses')}
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      <option value="unlimited">Unlimited</option>
+                      <option value="1">1 use</option>
+                      <option value="5">5 uses</option>
+                      <option value="10">10 uses</option>
+                      <option value="25">25 uses</option>
+                      <option value="50">50 uses</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="invite_expiry">Expires after</Label>
+                    <select
+                      id="invite_expiry"
+                      value={inviteForm.expiry}
+                      onChange={invf('expiry')}
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+                    >
+                      <option value="never">Never</option>
+                      <option value="1">1 day</option>
+                      <option value="3">3 days</option>
+                      <option value="7">7 days</option>
+                      <option value="14">14 days</option>
+                      <option value="30">30 days</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeInviteModal}>Cancel</Button>
+                <Button
+                  className="bg-gold-gradient text-accent-foreground hover:opacity-90"
+                  disabled={generatingLink}
+                  onClick={handleGenerateInvite}
+                >
+                  {generatingLink ? 'Generating...' : 'Generate Link'}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <div className="py-2 space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Invite Link</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={generatedLink}
+                      readOnly
+                      className="text-xs font-mono bg-muted"
+                      onClick={e => (e.target as HTMLInputElement).select()}
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => copyToClipboard(generatedLink)}
+                      className="flex-shrink-0"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Share via email, WhatsApp, or any channel you prefer.
+                  </p>
+                </div>
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  <span>Max uses: <strong className="text-foreground">{inviteForm.maxUses === 'unlimited' ? '∞' : inviteForm.maxUses}</strong></span>
+                  <span>Expires: <strong className="text-foreground">{inviteForm.expiry === 'never' ? 'Never' : `${inviteForm.expiry} day${inviteForm.expiry === '1' ? '' : 's'}`}</strong></span>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setGeneratedLink(null)}>
+                  Generate Another
+                </Button>
+                <Button
+                  className="bg-gold-gradient text-accent-foreground hover:opacity-90"
+                  onClick={() => { copyToClipboard(generatedLink); closeInviteModal(); }}
+                >
+                  Copy & Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Create Member Modal ───────────────────────────────────── */}
       <Dialog open={createOpen} onOpenChange={open => { if (!creating) { setCreateOpen(open); if (!open) setCreateForm(emptyCreate); } }}>
