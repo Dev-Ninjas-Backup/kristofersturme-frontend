@@ -155,7 +155,7 @@ const GranadaRoomDetail = () => {
           <h1 className="font-display text-2xl text-foreground mb-2">{room.name}</h1>
           <p className="text-muted-foreground mb-4">{room.description}</p>
           <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Users className="w-4 h-4" /> Capacity: up to {room.capacity} guest{room.capacity > 1 ? 's' : ''}
+            <Users className="w-4 h-4" /> 1 person per room · Plus 1 allowed
           </span>
         </div>
       </div>
@@ -222,22 +222,37 @@ const GranadaRoomDetail = () => {
             )}
           </div>
 
-          {/* Number of guests selector */}
-          {room.capacity > 1 && (
-            <div>
-              <Label>Number of Guests</Label>
-              <div className="flex gap-2 mt-1.5">
-                {Array.from({ length: room.capacity }).map((_, i) => (
-                  <button key={i} type="button" onClick={() => setGuestCount(i + 1)} className={cn(
-                    "w-12 h-10 rounded-lg border-2 text-sm font-bold transition-colors",
-                    guestCount === i + 1
-                      ? "border-navy bg-navy text-gold"
-                      : "border-border text-foreground hover:border-navy/50"
-                  )}>{i + 1}</button>
-                ))}
-              </div>
+          {/* Plus 1 option */}
+          <div>
+            <Label>Plus 1</Label>
+            <p className="text-xs text-muted-foreground mt-0.5 mb-2">Each room is for 1 member. You may bring one additional guest during the day.</p>
+            <div className="flex gap-2 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setGuestCount(1)}
+                className={cn(
+                  "px-4 h-10 rounded-lg border-2 text-sm font-semibold transition-colors",
+                  guestCount === 1
+                    ? "border-navy bg-navy text-gold"
+                    : "border-border text-foreground hover:border-navy/50"
+                )}
+              >
+                Just me
+              </button>
+              <button
+                type="button"
+                onClick={() => setGuestCount(2)}
+                className={cn(
+                  "px-4 h-10 rounded-lg border-2 text-sm font-semibold transition-colors",
+                  guestCount === 2
+                    ? "border-navy bg-navy text-gold"
+                    : "border-border text-foreground hover:border-navy/50"
+                )}
+              >
+                + 1 Guest
+              </button>
             </div>
-          )}
+          </div>
 
           {/* Guest 1 — booking user (read-only) */}
           <div className="space-y-2">
@@ -315,7 +330,7 @@ const GranadaRoomDetail = () => {
           </div>
 
           <Button type="submit" disabled={submitting || !!dateError} className="w-full bg-gold-gradient text-accent-foreground hover:opacity-90 font-semibold">
-            {submitting ? 'Submitting…' : `Submit Booking Request${guestCount > 1 ? ` for ${guestCount} Guests` : ''}`}
+            {submitting ? 'Submitting…' : `Submit Booking Request${guestCount === 2 ? ' + Plus 1' : ''}`}
           </Button>
         </form>
       </div>

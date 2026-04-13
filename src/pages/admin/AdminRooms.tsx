@@ -27,7 +27,7 @@ const AdminRooms = ({ embedded }: { embedded?: boolean } = {}) => {
     name: '',
     room_number: 1,
     description: '',
-    capacity: 2,
+    capacity: 1,
   });
 
   const openEdit = (room: GranadaRoom) => {

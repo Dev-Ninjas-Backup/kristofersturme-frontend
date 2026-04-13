@@ -49,7 +49,7 @@ const GranadaBookings = () => {
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{room.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Users className="w-3.5 h-3.5" /> Up to {room.capacity} guests
+                    <Users className="w-3.5 h-3.5" /> 1 person · Plus 1 allowed
                   </span>
                   <span className={cn("text-xs px-2 py-0.5 rounded-full", status.style)}>
                     {status.label}
