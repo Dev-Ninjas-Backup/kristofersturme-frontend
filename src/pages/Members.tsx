@@ -13,9 +13,13 @@ import type { MemberProfile } from '@/types';
 const MemberCard = ({ member }: { member: MemberProfile }) => (
   <Link to={`/members/${member.id}`} className="bg-card rounded-xl border border-border p-6 hover:shadow-elevated transition-all group">
     <div className="flex items-center gap-4 mb-4">
-      <div className="w-14 h-14 rounded-full bg-navy flex items-center justify-center text-gold font-display text-xl font-bold shrink-0">
-        {member.first_name[0]}{member.last_name[0]}
-      </div>
+      {member.avatar_url ? (
+        <img src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} className="w-14 h-14 rounded-full object-cover shrink-0 border border-gold/20" />
+      ) : (
+        <div className="w-14 h-14 rounded-full bg-navy flex items-center justify-center text-gold font-display text-xl font-bold shrink-0">
+          {member.first_name[0]}{member.last_name[0]}
+        </div>
+      )}
       <div className="min-w-0">
         <h3 className="font-semibold text-foreground truncate">{member.first_name} {member.last_name}</h3>
         {member.occupation && <p className="text-xs text-foreground/70 truncate">{member.occupation}</p>}

@@ -25,9 +25,13 @@ const MemberProfile = () => {
       <div className="bg-card rounded-xl border border-border overflow-hidden">
         <div className="bg-navy-gradient p-8">
           <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-full bg-navy-light border-2 border-gold/30 flex items-center justify-center text-gold font-display text-2xl font-bold">
-              {member.first_name[0]}{member.last_name[0]}
-            </div>
+            {member.avatar_url ? (
+              <img src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} className="w-20 h-20 rounded-full object-cover border-2 border-gold/30 shrink-0" />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-navy-light border-2 border-gold/30 flex items-center justify-center text-gold font-display text-2xl font-bold">
+                {member.first_name[0]}{member.last_name[0]}
+              </div>
+            )}
             <div>
               <h1 className="font-display text-2xl text-gold-light">{member.first_name} {member.last_name}</h1>
               {member.occupation && (

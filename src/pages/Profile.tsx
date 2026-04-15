@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMembers } from '@/hooks/useDb';
 import { updateMember, createMemberProfile } from '@/lib/db';
 import { useAuthStore } from '@/store/authStore';
+import { uploadAvatar } from '@/lib/cloudinary';
 import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Camera } from 'lucide-react';
 
 const geocode = async (city: string, country: string): Promise<{ lat: number; lng: number } | null> => {
   try {
@@ -43,6 +44,10 @@ const Profile = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState('');
   const [saving, setSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!member) return;
@@ -59,7 +64,43 @@ const Profile = () => {
     setCountry(member.location?.country || '');
     setIsVisible(member.is_visible);
     setSkills((member.skills ?? []).map(s => s.name));
+    setAvatarUrl(member.avatar_url);
+    setAvatarPreview(null);
   }, [member?.id]);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5 MB');
+      return;
+    }
+
+    // Show local preview immediately
+    const preview = URL.createObjectURL(file);
+    setAvatarPreview(preview);
+
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadAvatar(file);
+      setAvatarUrl(url);
+      // Persist immediately so other pages update without waiting for the full form save
+      if (member) {
+        await updateMember(member.id, { avatar_url: url });
+        toast.success('Profile picture updated');
+      }
+    } catch (err) {
+      setAvatarPreview(null);
+      toast.error(`Upload failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -144,6 +185,52 @@ const Profile = () => {
       <PageHeader title="Edit Profile" description="Update your profile information" />
 
       <form onSubmit={handleSave} className="space-y-6">
+        {/* ── Profile Picture ─────────────────────────────────── */}
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h3 className="font-display text-lg text-foreground mb-4">Profile Picture</h3>
+          <div className="flex items-center gap-6">
+            <div className="relative shrink-0">
+              {(avatarPreview || avatarUrl) ? (
+                <img
+                  src={avatarPreview ?? avatarUrl!}
+                  alt="Profile"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gold/30"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-navy flex items-center justify-center text-gold font-display text-2xl font-bold border-2 border-gold/30">
+                  {firstName[0] ?? ''}{lastName[0] ?? ''}
+                </div>
+              )}
+              {uploadingAvatar && (
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingAvatar}
+                onClick={() => avatarInputRef.current?.click()}
+                className="gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                {uploadingAvatar ? 'Uploading…' : 'Change Photo'}
+              </Button>
+              <p className="text-xs text-muted-foreground">JPG, PNG or WebP · Max 5 MB</p>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-card rounded-xl border border-border p-6 space-y-4">
           <h3 className="font-display text-lg text-foreground">Personal Info</h3>
           <div className="grid grid-cols-2 gap-4">

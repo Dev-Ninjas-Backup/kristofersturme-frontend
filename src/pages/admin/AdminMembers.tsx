@@ -257,9 +257,13 @@ const AdminMembers = () => {
                 <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center text-gold text-xs font-bold">
-                        {m.first_name[0]}{m.last_name?.[0] ?? ''}
-                      </div>
+                      {m.avatar_url ? (
+                        <img src={m.avatar_url} alt={`${m.first_name} ${m.last_name}`} className="w-8 h-8 rounded-full object-cover border border-gold/20 shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center text-gold text-xs font-bold shrink-0">
+                          {m.first_name[0]}{m.last_name?.[0] ?? ''}
+                        </div>
+                      )}
                       <span className="text-sm font-medium text-foreground">{m.first_name} {m.last_name}</span>
                     </div>
                   </td>
